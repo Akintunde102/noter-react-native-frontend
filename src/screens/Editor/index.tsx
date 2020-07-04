@@ -1,21 +1,31 @@
 import * as React from 'react';
-import {View, TextInput, Dimensions, Input, Alert} from 'react-native';
+import {
+  View,
+  TextInput,
+  Dimensions,
+  Input,
+  Alert,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import api from '../../server';
 import {AxiosRequestConfig} from 'axios';
 import storage from '../../localDb';
-import {dateToUnix, now, deleteStaleJobs} from '../../utils';
+import {now, deleteStaleJobs} from '../../utils';
 import {
   ILocalNoteSave,
   ILocalNote,
   ISaveJobParameters,
   ISaveJobs,
 } from '../../types';
+import DeleteNote from '../../components/DeleteNote';
+import Styles from './style';
 
 function EditorScreen({navigation, route}: {isNewNote: boolean}) {
   const [note, setNote] = React.useState<string>('');
   const [localID, setLocalID] = React.useState<string>('');
   const [remoteID, setRemoteID] = React.useState<string>('');
   const [timeCreated, setTimeCreated] = React.useState<number | null>(null);
+  const [priority, setPriority] = React.useState<string>('#fff');
 
   const {noteID = null, isNewNote = true} = route?.params || {};
   React.useEffect(() => {
@@ -32,6 +42,7 @@ function EditorScreen({navigation, route}: {isNewNote: boolean}) {
             timeCreated: now(),
             timeUpdated: 0,
             remoteID: '',
+            color: priority,
           },
         };
 
@@ -117,6 +128,7 @@ function EditorScreen({navigation, route}: {isNewNote: boolean}) {
               timeUpdated: timeUpdatedInUTC,
               timeCreated: timeMadeInUTC,
               remoteID: _id,
+              color: priority,
             },
           };
           //Overwrite to provide localKey
@@ -259,6 +271,9 @@ function EditorScreen({navigation, route}: {isNewNote: boolean}) {
 
   const onChangeContent = async (value: string) => {
     if (timeCreated) {
+      //Save in Dom
+      setNote(value);
+
       const timeUpdated = now();
       const data: ILocalNoteSave = {
         data: {
@@ -266,14 +281,12 @@ function EditorScreen({navigation, route}: {isNewNote: boolean}) {
           timeUpdated: now(),
           timeCreated,
           remoteID: remoteID,
+          color: priority,
         },
         id: localID,
         expires: null,
         key: 'notes',
       };
-
-      //Save in Dom
-      setNote(value);
 
       //Overwrite Localkey
       storage.save(data);
@@ -284,6 +297,7 @@ function EditorScreen({navigation, route}: {isNewNote: boolean}) {
         timeUpdated,
         when: now(),
       });
+
       // Save
       saveJob({
         jobParameters: {
@@ -296,22 +310,26 @@ function EditorScreen({navigation, route}: {isNewNote: boolean}) {
     }
   };
 
+  const _deleteNote = (key: string, id: string) => {
+    storage.remove({
+      key,
+      id,
+    });
+  };
+
   return (
-    <View style={{flex: 1, marginVertical: 10}}>
+    <View style={Styles.fullView}>
       <TextInput
         multiline={true}
-        style={{
-          flex: 1,
-          fontSize: 20,
-          textAlignVertical: 'top',
-          paddingTop: 0,
-          paddingBottom: 0,
-        }}
+        style={Styles.textInput}
         onChangeText={(text: string) => onChangeContent(text)}
         value={note}
         autoFocus={true}
         placeholder="Content"
       />
+      <View style={Styles.absoluteButton}>
+        <DeleteNote onClickDeleteNote={() => _deleteNote('notes', noteID)} />
+      </View>
     </View>
   );
 }

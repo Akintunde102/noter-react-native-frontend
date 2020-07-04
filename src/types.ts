@@ -3,6 +3,7 @@ export interface ILocalNote {
   timeCreated: number;
   timeUpdated: number;
   remoteID: string;
+  color: string;
 }
 
 export interface ILocalNoteSave {

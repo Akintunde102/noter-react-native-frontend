@@ -1,26 +1,25 @@
 import * as React from 'react';
-import {View, Text, ScrollView, Dimensions} from 'react-native';
+import {View, Text, ScrollView, TouchableOpacity} from 'react-native';
 import AddNote from '../../components/AddNote';
 import storage from '../../localDb';
-import {ILocalNote, ILocalNoteSave} from '../../types';
-import {TouchableOpacity} from 'react-native-gesture-handler';
+import {ILocalNote} from '../../types';
+import Styles from './style';
 
 function HomeScreen({navigation}) {
   const [notes, setNotes] = React.useState<Partial<ILocalNote[]>>([]);
 
-  const {height: screenHeight, width: screenWidth} = Dimensions.get('screen');
-
   const getNotes = async () => {
     const ids = await storage.getIdsForKey('notes');
-    console.log({ids});
     const res = [];
-    for (let i = 0; i < ids.length; i++) {
+    for (let i = ids.length - 1; i >= 0; i--) {
       const id = ids[i];
       const note = await storage.load({
         key: 'notes',
         id,
       });
-      res.push({id, ...note});
+      if (note.text.trim() !== '') {
+        res.push({id, ...note});
+      }
     }
     return res;
   };
@@ -37,49 +36,29 @@ function HomeScreen({navigation}) {
 
   return (
     <View style={{flex: 1}}>
-      <ScrollView style={{flex: 1}}>
-        {notes?.length > 0 ? (
-          notes.map((note: ILocalNote | undefined, index) => (
+      {notes?.length > 0 ? (
+        <ScrollView style={{flex: 1}}>
+          {notes.map((note: ILocalNote | undefined, index) => (
             <TouchableOpacity
               key={index}
-              style={{
-                backgroundColor: '#fff',
-                marginVertical: 5,
-                height: screenHeight / 4,
-                borderRadius: 5,
-                shadowColor: '#000',
-                shadowOffset: {
-                  width: 0,
-                  height: 3,
-                },
-                shadowOpacity: 0.27,
-                shadowRadius: 4.65,
-                elevation: 6,
-                marginHorizontal: 10,
-              }}
+              style={Styles.note}
               onPress={() => {
                 navigation.navigate('Editor', {
                   noteID: note.id,
                   isNewNote: false,
                 });
               }}>
-              <View>
-                <Text
-                  style={{
-                    padding: 20,
-                    fontSize: 20,
-                  }}>
-                  {note.text.substr(0, 50)}
-                </Text>
+              <View style={Styles.noteContentView}>
+                <Text style={Styles.noteText}>{note.text.substr(0, 50)}</Text>
               </View>
             </TouchableOpacity>
-          ))
-        ) : (
-          <View>
-            <Text> No Note</Text>
-          </View>
-        )}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={Styles.noNotes}>
+          <Text> No Note</Text>
+        </View>
+      )}
       <View style={{position: 'absolute', bottom: 20, right: 20}}>
         <AddNote />
       </View>
